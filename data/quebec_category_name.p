@@ -1,0 +1,12 @@
+(lp0
+S'sector'
+p1
+aS'conv_year'
+p2
+aS'house_type'
+p3
+aS'constr_year'
+p4
+aS'own_rent'
+p5
+a.
