@@ -32,16 +32,16 @@ def get_prob_s(beta):
     global data
     global label
     K = beta.shape[1]
-    util = np.sum(beta.reshape(S,K,N,1,m) * data, axis=4)
-    util = np.exp(util - util.max(axis=3).reshape(S,K,N,1))
-    prob_individual = util / util.sum(axis=3).reshape(S,K,N,1)
+    util = np.sum(beta.reshape((S,K,N,1,m)) * data, axis=4)
+    util = np.exp(util - util.max(axis=3).reshape((S,K,N,1)))
+    prob_individual = util / util.sum(axis=3).reshape((S,K,N,1))
     return np.sum(prob_individual * label,axis=3)
 
 def get_prob_X(prob_c,prob_s):
     return np.sum(prob_c * prob_s,axis=(0,1)) / float(S)
 
 def get_prob_x(prob_c,prob_s):
-    prob_X = np.sum(prob_c * prob_s,axis=(0,1))
+    prob_X = np.maximum(np.sum(prob_c * prob_s,axis=(0,1)), 1e-15)
     prob_x = prob_c * prob_s / prob_X.reshape((1,1,N))
     return prob_x
 
@@ -57,7 +57,7 @@ def grad(alpha, prob_s):
     prob_c = get_prob_c(alpha)
     prob_x = get_prob_x(prob_c,prob_s)
 
-    grad_a = - np.sum((np.sum(prob_x,axis=0) - prob_c).reshape(K,N,1) * state,axis=1)
+    grad_a = - np.sum((np.sum(prob_x,axis=0) - prob_c).reshape((K,N,1)) * state,axis=1)
     grad_a = grad_a.reshape((K * M))
     if np.sum(grad_a * grad_a) > 1e0:
         grad_a = grad_a / np.sqrt(np.sum(grad_a * grad_a))
@@ -69,18 +69,18 @@ def update(alpha, prob_s, beta, mu, Sigma):
     prob_x = get_prob_x(prob_c,prob_s)
 
     prob_de = np.maximum(np.sum(prob_x,axis = (0,2)),1e-15)
-    mu = np.sum(prob_x.reshape(S,K,N,1) * beta,axis = (0,2)) / prob_de.reshape(K,1)
-    temp = beta - mu.reshape(K,1,m)
+    mu = np.sum(prob_x.reshape((S,K,N,1)) * beta,axis = (0,2)) / prob_de.reshape((K,1))
+    temp = beta - mu.reshape((K,1,m))
 
     Sigma = np.zeros((K,m,m),np.float64)
     for s in xrange(S):
-        Sigma += np.sum( prob_x[s,:,:].reshape(K,N,1,1) * temp[s,:,:,:].reshape(K,N,m,1) * temp[s,:,:,:].reshape(K,N,1,m),axis = 1 )
+        Sigma += np.sum( prob_x[s,:,:].reshape((K,N,1,1)) * temp[s,:,:,:].reshape((K,N,m,1)) * temp[s,:,:,:].reshape((K,N,1,m)),axis = 1 )
     Sigma = Sigma / prob_de.reshape((K,1,1))
     for k in xrange(K):
         v,U = la.eigh(Sigma[k,:,:])
         if min(v) < 0:
             v = np.maximum(v,0)
-            Sigma[k,:,:] = np.matmul(U, np.matmul(diag(v), U.T))
+            Sigma[k,:,:] = np.matmul(U, np.matmul(np.diag(v), U.T))
 
     return mu,Sigma
 
@@ -89,8 +89,8 @@ def post_mixture(K = 1):
     #mu = np.zeros((K,m),np.float64)
 
     weight = pickle.load( open( "result/quebec_final_weight_post_mnl_"+str(K)+".p", "rb" ) )
-    alpha = weight[0:(M * K)]
-    mu = weight[(M * K):((M + m) * K)].reshape((K,m))
+    alpha = weight['alpha']
+    mu = weight['beta']
     Sigma = np.zeros((K,m,m),np.float64)
     for k in xrange(K):
         Sigma[k,:,:] = 1.0 * np.eye(m)
@@ -133,6 +133,6 @@ def post_mixture(K = 1):
     print 'mu:',mu
     print 'Sigma:',Sigma
 
-    pickle.dump( np.concatenate((alpha,mu.reshape((K * m)),Sigma.reshape((K * m * m)))), open( "result/quebec_final_weight_post_mixture_"+str(K)+".p", "wb" ) )
+    pickle.dump( {'alpha':alpha,'mu':mu,'Sigma':Sigma}, open( "result/quebec_final_weight_post_mixture_"+str(K)+".p", "wb" ) )
 
-post_mixture(2)
+post_mixture(1)
