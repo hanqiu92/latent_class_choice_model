@@ -4,8 +4,8 @@ import pickle
 
 cate_name = pickle.load( open( "data/quebec_category_name.p", "rb" ) )
 cate_data = pickle.load( open( "data/quebec_category.p", "rb" ) )
-numer_data = pickle.load( open( "data/quebec_numerical.p", "rb" ) )
-label = pickle.load( open( "data/quebec_label.p", "rb" ) )
+numer_data = pickle.load( open( "data/quebec_numerical_1.p", "rb" ) )
+label = pickle.load( open( "data/quebec_label_1.p", "rb" ) )
 
 def likelihood(w, data, label):
     num_labels, sample_size, num_vari = data.shape

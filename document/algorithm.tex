@@ -1,0 +1,267 @@
+\documentclass[english]{article}
+\usepackage[latin9]{luainputenc}
+\usepackage{geometry}
+\geometry{verbose,tmargin=3cm,bmargin=3cm,lmargin=3cm,rmargin=3cm}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\makeatletter
+\renewcommand\paragraph{\@startsection{paragraph}{4}{\z@}%
+            {-2.5ex\@plus -1ex \@minus -.25ex}%
+            {1.25ex \@plus .25ex}%
+            {\normalfont\normalsize\bfseries}}
+\makeatother
+\setcounter{secnumdepth}{4} % how many sectioning levels to assign numbers to
+\setcounter{tocdepth}{4}    % how many sectioning levels to show in ToC
+
+\begin{document}
+
+\section{Introduction}
+
+In this project, we are going to investigate the properties of different model structures to include latent class variables in discrete choice model. Specifically, we will compare models which regard latent class as the source of individual state with ones which regard latent class as the result of individual state.
+
+Before we get into details, we first review the basic discrete choice models. Assume there are a set of options $\{1,\cdots,n\}$, and for individual $j\in\{1,\cdots,N\}$, the general property can be modeled with $x_S(j)$ and choice-specific property can be modeled with $x_I(i,j)$. We can then concatenate them into overall state vector $x_{ij}$ for each option $i$. Then we can use a single coefficient vector $\beta$ to model the choice behavior with the following model
+\begin{equation}\nonumber
+  p_{ij} = \frac{\exp(\beta^Tx_{ij})}{\sum_i\exp(\beta^Tx_{ij})}.
+\end{equation}
+
+\noindent This is called multinomial logit model (MNL). If we want to make the coefficient $\beta$ stochastic, we can use
+\begin{equation}\nonumber
+  p_{ij} = \int_{\beta}\frac{\exp(\beta^Tx_{ij})}{\sum_i\exp(\beta^Tx_{ij})}dF(\beta).
+\end{equation}
+
+\noindent This is called mixture logit model (MMNL).
+
+\section{Classes as Results of States}
+
+Now consider latent class $k\in\{1,\cdots,K\}$, which is determined by global state $x = [x_S,x_I(1),\cdots,x_I(n)]$:
+\begin{equation}\nonumber
+  p(k|x_j) = \frac{\exp(\alpha_k^Tx_j)}{\sum_k\exp(\alpha_k^Tx_j)}.
+\end{equation}
+
+\noindent where $\alpha_k$ are parameters to be determined. Then we can consider class-specific choice coefficient $\beta_k$:
+\begin{equation}\nonumber
+  p(i|x_j,k) = \frac{\exp(\beta_k^Tx_{ij})}{\sum_i\exp(\beta_k^Tx_{ij})}.
+\end{equation}
+
+Next, we will discuss how to estimate these parameters for MNL and MMNL.
+
+\subsection{Multinomial Logit Model}
+
+The graphical representation of this model can be expressed as:
+\begin{equation}\nonumber
+  x \to k \to \beta \to I
+\end{equation}
+
+The log likelihood can be expressed as
+\begin{equation}\nonumber
+  L = \sum_j\log(\sum_kp(k|x_j)p(I_j|j,k)).
+\end{equation}
+
+\noindent in which $p(I_j|j,k) = \sum_ip(i|x_{ij},k)l(i|j)$ and $l$ is the observed label. If we let
+\begin{equation}\nonumber
+  \begin{aligned}
+    p_X(j) & = \sum_kp(k|x_j)p(I_j|j,k)\\
+    p_x(k,j) & = p(k|x_j)p(I_j|j,k) / p_X(j)
+  \end{aligned}
+\end{equation}
+
+\noindent the gradient can be expressed as
+\begin{equation}\nonumber
+  \begin{aligned}
+    \frac{\partial}{\partial \alpha_k}L & = \sum_j \frac{1}{p_X(j)}(\sum_{k'} p(I_j|j,k')\frac{\partial}{\partial \alpha_k}p(k|x_j)) \\
+    & = \sum_j \frac{p(k|x_j)x_j}{p_X(j)}(p(I_j|j,k) - p_X(j))\\
+    & = \sum_j (p_x(k,j) - p(k|x_j))x_j
+  \end{aligned}
+\end{equation}
+
+\noindent and
+\begin{equation}\nonumber
+  \begin{aligned}
+    \frac{\partial}{\partial \beta_k}L & = \sum_j \frac{p(k|x_j)}{p(j)}\frac{\partial}{\partial \beta_k}p(I_j|j,k) \\
+    & = \sum_j \frac{p(k|x_j)}{p(j)}(\sum_il(i|j)\frac{\partial}{\partial \beta_k}p(i|x_{ij},k)) \\
+    & = \sum_j \frac{p(k|x_j)}{p(j)}(\sum_il(i|j)(p(i|x_{ij},k)x_{ij}-\sum_{i'}p(i|x_{ij},k)p(i'|x_{i'j},k)x_{i'j})) \\
+    & = \sum_j \frac{p(k|x_j)}{p(j)}p(I_j|j,k)(\sum_il(i|j)x_{ij}-\sum_{i'}p(i'|x_{i'j},k)x_{i'j})) \\
+    & = \sum_j p_x(k,j)(\sum_i(l(i|j)-p(i|x_{ij},k))x_{ij})
+  \end{aligned}
+\end{equation}
+
+Then gradient based methods can be applied.
+
+\subsection{Mixture Logit Model}
+
+The graphical representation of this model can be expressed as:
+\begin{equation}\nonumber
+  x \to k \to (\mu,\Sigma) \to \beta \to I
+\end{equation}
+
+Now, the log likelihood can be expressed as
+\begin{equation}\nonumber
+  L = \sum_j\log(p_X(j)) = \sum_j\log(\sum_kp(k|x_j)E_{\beta_k}(p(I_j|j,\beta_k))).
+\end{equation}
+
+Assume $\beta_k\sim N(\mu_k,\Sigma_k)$. Since we have semidefinite constraints on $\Sigma_k$ which is hard to modeled in gradient method, we consider to use EM algorithm. Specifically, we consider two latent variables: $k$ and $\beta_k$. The posterior of the joint distribution is:
+\begin{equation}\nonumber
+  \begin{aligned}
+    h(k,j) & = p(k,\beta_k|I_j,x_j)\\
+    & = \frac{p(k|x_j)p(I_j|j,\beta_k)p(\beta_k)}{\sum_{k'}p(k'|x_j)E_{\beta_{k'}}(p(I_j|j,\beta_{k'}))}
+  \end{aligned}
+\end{equation}
+
+\noindent and the approximation becomes
+\begin{equation}
+  \begin{aligned}
+    L' & = \sum_{j,k}\int_{\beta_k} h(k,j)(\log p(k|x_j) + \log p(I_j|j,\beta_k)+\log p(\beta_k))d\beta_k \\
+    & = \sum_{j,k}\frac{E_{\beta_k} (p(k|x_j)p(I_j|j,\beta_k)(\log p(k|x_j) + \log p(I_j|j,\beta_k)+\log p(\beta_k)))}{\sum_{k}p(k|x_j)E_{\beta_{k}}(p(I_j|j,\beta_{k}))}\\
+  \end{aligned}
+\end{equation}
+
+Then, we can then draw samples and use Monte-Carlo method to approximate the expectation $E_{\beta_k}(\cdot)$. Assume we take $S$ samples for each $j$ and $\beta_k$: $\beta_{k,j,1},\cdots,\beta_{k,j,S}$. The new approximation becomes
+\begin{equation}
+  L'' = \sum_{j,k,s}\hat{p_x}(k,j,s)(\log p(k|x_j) + \log p(I_j|j,\beta_k)+\log p(\beta_k))
+\end{equation}
+
+\noindent with
+\begin{equation}\nonumber
+    \hat{p_x}(k,j,s) = \frac{p(k|x_j)p(I_j|j,\beta_{k,j,s})}{\sum_{k',s'}p(k'|x_j)p(I_j|j,\beta_{k',j,s'})}
+\end{equation}
+
+Now, for this approximated problem, we can calculate the optimum of $\mu$ and $\Sigma$ directly:
+\begin{equation}\nonumber
+  \begin{aligned}
+    \mu_k & = \frac{\sum_{j,s}\hat{p_x}(k,j,s)\beta_{j,k,s}}{\sum_{j,s}\hat{p_x}(k,j,s)}\\
+    \Sigma_k & = \frac{\sum_{j,s}\hat{p_x}(k,j,s)(\beta_{j,k,s}-\mu_k)(\beta_{j,k,s}-\mu_k)^T}{\sum_{j,s}\hat{p_x}(k,j,s)}
+  \end{aligned}
+\end{equation}
+
+\noindent but we need to apply gradient methods for $\alpha_k$:
+\begin{equation}\nonumber
+  \frac{\partial}{\partial \alpha_k}L'' = \sum_{j,s} (\hat{p_x}(k,j,s) - p(k|x_j))x_j
+\end{equation}
+
+
+
+
+
+
+\section{Classes as Sources of States}
+
+Now consider latent class $k\in\{1,\cdots,K\}$ with occurence probability $p(k)=\pi_k$, which generates both global state $x = [x_S,x_I(1),\cdots,x_I(n)]$ with
+\begin{equation}\nonumber
+  p(x_j|k) \sim N(\theta_k,\Lambda_k)
+\end{equation}
+
+\noindent and choice coefficient $\beta_k$:
+\begin{equation}\nonumber
+  p(i|x_j,k) = \frac{\exp(\beta_k^Tx_{ij})}{\sum_i\exp(\beta_k^Tx_{ij})}.
+\end{equation}
+
+Again, since we have normal distribution now, we should consider EM algorithm. But to apply EM in an easy way, we need to change our objective function; rather than to optimize the conditional log likelihood $\sum_j\log p(I_j|x_j)$, we want to optimize the joint log likelihood $\sum_j\log p(I_j,x_j)$. This infact leads to some interesting discussion at the end of this section.
+
+Again, next we will discuss how to estimate these parameters for MNL and MMNL.
+
+\subsection{Multinomial Logit Model}
+
+The graphical representation of this model can be expressed as:
+\begin{equation}\nonumber
+  k \to (x,\beta) \to I
+\end{equation}
+
+The log likelihood can be expressed as
+\begin{equation}\nonumber
+  L = \sum_j\log(\sum_kp(k)p(x_j|k)p(I_j|j,k)).
+\end{equation}
+
+\noindent in which $p(I_j|j,k) = \sum_ip(i|x_{ij},k)l(i|j)$ and $l$ is the observed label. To apply EM algorithm, we consider posterior $h(k,j)$:
+\begin{equation}\nonumber
+  \begin{aligned}
+    h(k,j) & = p(k|I_j,x_j)\\
+    & = \frac{p(I_j,x_j|k)p(k)}{\sum_{k'}p(I_j,x_j|k')p(k')}\\
+    & = \frac{p(I_j|j,k)p(x_j|k)\pi_k}{\sum_{k'}p(I_j|j,k')p(x_j|k')\pi_{k'}}
+  \end{aligned}
+\end{equation}
+
+So if we let
+\begin{equation}\nonumber
+  \begin{aligned}
+    p_Y(j) & = \sum_k \pi_kp(x_j|k)p(I_j|j,k)\\
+    p_y(k,j) & = \pi_kp(x_j|k)p(I_j|j,k)/p_Y(j)
+  \end{aligned}
+\end{equation}
+
+\noindent we will have $h(k,j)=p_y(k,j)$. The approximation problem is then
+\begin{equation}
+  \max L' = \max \sum_j\sum_k p_y(k,j)(\log\pi_k+\log p(x_j|k)+\log p(I_j|j,k))
+\end{equation}
+
+The optimum of $\pi_k,\theta_k$ and $\Lambda_k$ can be directly calculated:
+\begin{equation}\nonumber
+  \begin{aligned}
+    \pi_k & = \frac{1}{N}\sum_j p_y(k,j) \\
+    \theta_k & = \frac{\sum_j p_y(k,j)x_j}{\sum_j p_y(k,j)}\\
+    \Lambda_k & = \frac{\sum_j p_y(k,j)(x_j-\theta_k)(x_j-\theta_k)^T}{\sum_j p_y(k,j)}
+  \end{aligned}
+\end{equation}
+
+\noindent and we need to apply gradient methods for $\beta_k$:
+\begin{equation}\nonumber
+  \begin{aligned}
+    \frac{\partial}{\partial \beta_k}L' & = \sum_j p_y(k,j)\frac{\partial}{\partial \beta_k}\log p(I_j|j,k) \\
+    & = \sum_j p_y(k,j)(\sum_i(l(i|j)-p(i|x_{ij},k))x_{ij})
+  \end{aligned}
+\end{equation}
+
+\subsection{Mixture Logit Model}
+
+The graphical representation of this model can be expressed as:
+\begin{equation}\nonumber
+  k \to (x,\mu,\Sigma) \to \beta \to I
+\end{equation}
+
+Now, the log likelihood can be expressed as
+\begin{equation}\nonumber
+  L = \sum_j(\log(p_Y(j))) = \sum_j\log(\sum_k \pi_kp(x_j|k)E_{\beta_k}p(I_j|j,\beta_k)).
+\end{equation}
+
+Again, to apply EM algorithm, we consider two latent variables: $k$ and $\beta_k$. The posterior of the joint distribution is:
+\begin{equation}\nonumber
+  \begin{aligned}
+    h(k,j) & = p(k,\beta_k|I_j,x_j)\\
+    & = \frac{\pi_kp(x_j|k)p(I_j|j,\beta_k)p(\beta_k|k)}{\sum_{k'}\pi_{k'}p(x_j|k')E_{\beta_{k'}}(p(I_j|j,\beta_{k'}))}
+  \end{aligned}
+\end{equation}
+
+\noindent and the approximation becomes
+\begin{equation}
+  \begin{aligned}
+    L' & = \sum_{j,k}\int_{\beta_k} h(k,j)(\log \pi_k + \log p(x_j|k) + \log p(I_j|j,\beta_k)+\log p(\beta_k|k))d\beta_k \\
+    & = \sum_{j,k}\frac{E_{\beta_k} (\pi_kp(x_j|k)p(I_j|j,\beta_k)(\log p(k|x_j) + \log p(I_j|j,\beta_k)+\log p(\beta_k)))}{\sum_{k}\pi_kp(x_j|k)E_{\beta_{k}}(p(I_j|j,\beta_{k}))}\\
+  \end{aligned}
+\end{equation}
+
+Then, we can then draw samples and use Monte-Carlo method to approximate the expectation $E_{\beta_k}(\cdot)$. Assume we take $S$ samples for each $j$ and $\beta_k$: $\beta_{k,j,1},\cdots,\beta_{k,j,S}$. The new approximation becomes
+\begin{equation}
+  L'' = \sum_{j,k,s}\hat{p_y}(k,j,s)(\log\pi_k + \log p(x_j|k) + \log p(I_j|j,\beta_k)+\log p(\beta_k))
+\end{equation}
+
+\noindent with
+\begin{equation}\nonumber
+    \hat{p_y}(k,j,s) = \frac{\pi_kp(x_j|k)p(I_j|j,\beta_{k,j,s})}{\sum_{k',s'}\pi_{k'}p(x_j|k')p(I_j|j,\beta_{k',j,s'})}
+\end{equation}
+
+Now, for this approximated problem, we can calculate the optimum of all parameters directly:
+\begin{equation}\nonumber
+  \begin{aligned}
+    \pi_k & = \frac{1}{N}\sum_{j,s} \hat{p_y}(k,j,s) \\
+    \theta_k & = \frac{\sum_{j,s} \hat{p_y}(k,j,s)x_j}{\sum_{j,s} \hat{p_y}(k,j,s)}\\
+    \Lambda_k & = \frac{\sum_{j,s} \hat{p_y}(k,j,s)(x_j-\theta_k)(x_j-\theta_k)^T}{\sum_{j,s} \hat{p_y}(k,j,s)}\\
+    \mu_k & = \frac{\sum_{j,s}\hat{p_y}(k,j,s)\beta_{j,k,s}}{\sum_{j,s}\hat{p_y}(k,j,s)}\\
+    \Sigma_k & = \frac{\sum_{j,s}\hat{p_y}(k,j,s)(\beta_{j,k,s}-\mu_k)(\beta_{j,k,s}-\mu_k)^T}{\sum_{j,s}\hat{p_y}(k,j,s)}
+  \end{aligned}
+\end{equation}
+
+\section{Numerical Experiment}
+
+\section{Reference}
+
+\end{document}
