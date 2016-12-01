@@ -122,7 +122,7 @@ def pre_mixture(K = 1):
         prob_inv_c, log_prob_inv_c = get_prob_inv_c(theta,Lambda)
         beta = get_beta(mu,Sigma)
         prob_s = get_prob_s(beta)
-        if (n_iter % 1 == 0):
+        if (n_iter % 10 == 0):
             print n_iter,', L:',L(pi, prob_inv_c, prob_s),', L_f:',L_f(pi, prob_inv_c, log_prob_inv_c, prob_s)
 
         pi, theta, Lambda, mu, Sigma = update(prob_inv_c, prob_s, beta, pi, theta, Lambda, mu, Sigma)
@@ -145,4 +145,4 @@ def pre_mixture(K = 1):
 
     pickle.dump( {'pi':pi,'theta':theta,'Lambda':Lambda,'mu':mu,'Sigma':Sigma}, open( "result/quebec_final_weight_pre_mixture_"+str(K)+".p", "wb" ) )
 
-pre_mixture(2)
+pre_mixture(1)

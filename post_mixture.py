@@ -89,7 +89,7 @@ def post_mixture(K = 1):
     #mu = np.zeros((K,m),np.float64)
 
     weight = pickle.load( open( "result/quebec_final_weight_post_mnl_"+str(K)+".p", "rb" ) )
-    alpha = weight['alpha']
+    alpha = weight['alpha'].reshape((K * M))
     mu = weight['beta']
     Sigma = np.zeros((K,m,m),np.float64)
     for k in xrange(K):
@@ -126,13 +126,13 @@ def post_mixture(K = 1):
     print 'final loss:',loss
     print 'total time:',time.clock() - t
 
-    print 'classifcator:',alpha
+    print 'classifcator:',alpha.reshape((K,M))
     cla = get_prob_c(alpha)
     print 'classification',np.max(cla,axis=1),np.min(cla,axis=1)
 
     print 'mu:',mu
     print 'Sigma:',Sigma
 
-    pickle.dump( {'alpha':alpha,'mu':mu,'Sigma':Sigma}, open( "result/quebec_final_weight_post_mixture_"+str(K)+".p", "wb" ) )
+    pickle.dump( {'alpha':alpha.reshape((K,M)),'mu':mu,'Sigma':Sigma}, open( "result/quebec_final_weight_post_mixture_"+str(K)+".p", "wb" ) )
 
 post_mixture(1)

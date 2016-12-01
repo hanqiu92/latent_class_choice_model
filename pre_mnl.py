@@ -122,7 +122,7 @@ def pre_mnl(K = 1):
     n_iter = 0
     while (n_iter < 200):
         prob_inv_c, log_prob_inv_c = get_prob_inv_c(theta,Lambda)
-        if (n_iter % 1 == 0):
+        if (n_iter % 10 == 0):
             print n_iter,', L:',L(beta, pi, prob_inv_c, log_prob_inv_c),', L_f:',L_f(beta, pi, prob_inv_c, log_prob_inv_c)
         #'''
         res = opt.minimize(L_f,beta,jac = grad,
